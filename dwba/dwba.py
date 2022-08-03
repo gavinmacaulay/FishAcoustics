@@ -6,7 +6,8 @@ Created on Mon Aug  1 12:26:59 2022
 """
 
 """
-    This module provides a function that calculates the target strength of 
+    This module provides functions that implement the distorted wave Born
+    approximation.
     
 """
 
@@ -15,27 +16,67 @@ import math
 import numpy as np
 from scipy import ndimage
 
-def phase_tracking_dwba(volume, frequencies, voxel_size, angles, densities, sound_speeds):
+def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, sound_speeds):
     """
     
-    volume: 3D numpy ndarray of integer type that contains the object to be modelled.
-            Integers should be 0 for surrounding water, then increasing integers
-            for other material types (i.e., 1, 2, 3, etc).
-            This ndarray should be oriented
-            
-    densities: should be an iterable variable with the same number of entries as
-               unique categories in 'volume'  [kg/m^3]
-    sound_speeds: same as for densities [m/s]
-    frequencies: iterable variable of modelling frequencies [Hz]
-    angles: 2D ndarray containing angles ([0,:] = pitch, [1,:] = roll) [degree]
+    Overview
+    --------
+    This function implements the phase-tracking distorted wave Born approximation
+    model for calculating the acoustic backscatter from weakly scattering bodies.
+    
+    It implements the method presented in Jones et. al., (2009). The code is 
+    based closely on the Matlab code presented in Jones (2006).
+        
+    References
+    ----------
+    Jones, B. A. 2006. Acoustic scattering of broadband echolocation signals from 
+       prey of Blainville’s beaked whales: modeling and analysis. Master of Science,
+       Massachusetts Institute of Technology.
 
+    Jones, B. A., Lavery, A. C., and Stanton, T. K. 2009. Use of the distorted 
+       wave Born approximation to predict scattering by inhomogeneous objects: 
+       Application to squid. The Journal of the Acoustical Society of America, 
+       125: 73–88.
+
+    Input
+    -----
+    volume: 3D numpy ndarray of integers that contains the object to be modelled.
+            Integers should be 0 for surrounding water, then increasing by 1 for each
+            additional material type (i.e., 1, 2, 3, etc).
+            The ndarray should be oriented thus:
+                axis 0: height direction, increasing towards the underside of the organism
+                axis 1: across direction, increasing towards the left side of the organism
+                axis 2: along direction, increasing towards the tail of the organism
+            In an x,y,z coordinate system the correspondence to axes is:
+                x - axis 0 direction, but in the reverse order
+                y - axis 1 direction
+                z - axis 2 direction
+                
+    angles: 2D ndarray containing organism orientation angles [degree]. The 
+            first column is interpreted as pitch and the second column as roll.
+            Positive pitch values give a head up organism pitch.
+            Positive roll values give a roll to the left side of the organism.
+
+    frequencies: iterable containing the frequencies to run the model at [Hz]
+            
+    voxel_size: iterable containing the size of the voxels in the volume 
+                variable [m]. This code requires that the voxels are cubes.
+                
+    densities: iterable with the same number of entries as unique integers in 
+               the volume variable.  [kg/m^3]
+               
+    sound_speeds: iterable with the same number of entries as unique integers in 
+                  the volume variable.  [m/s]
+    
     Returns
     -------
-    Xarray that contains the modelled target strength [dB re 1 m^2]
+    2D ndarray containing the modelled target strength (re 1 m^2) [dB] at the requested
+    orientation angles and frequencies. Axis 0 indexes the orientation angles 
+    and axis 1 the frequencies.
 
     """  
     
-    # Make sure things are numpy arrayes
+    # Make sure things are numpy arrays
     densities = np.array(densities)
     sound_speeds = np.array(sound_speeds)
     voxel_size = np.array(voxel_size)
