@@ -171,19 +171,20 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     return 20.0 * np.log10(np.abs(fbs_dwba))
     
 def main():
+    # Simple test of the phase_tracking_dwba function.
     
-    frequencies = np.arange(1000,100001,500)
-    angles = np.array([[0.0, 0.0, 0.0], [0.0, 45.0, -45.0]])
+    frequencies = np.arange(1000,100001,50)
+    angles = np.array([[0.0, 45.0, -45.0], [0.0, 0.0, 0.0]])
     voxel_size = [5e-4, 5e-4, 5e-4]
-    densities = [1024., 1025., 1026.]
+    densities = [1024., 1025., 1026]
     sound_speeds = [1480., 1490., 1500.]
     volume = np.array([[[0,0,0,0],[0,1,2,0],[0,0,0,0]], 
-                       [[0,0,0,0],[0,3,4,0],[0,0,0,0]], 
-                       [[0,0,0,0],[0,5,6,0],[0,0,0,0]],
-                       [[0,0,0,0],[0,7,8,0],[0,0,0,0]],
-                       [[0,0,0,0],[0,9,10,0],[0,0,0,0]]])
+                       [[0,0,0,0],[0,1,0,2],[0,0,0,0]], 
+                       [[0,0,0,0],[0,1,0,2],[0,0,0,0]],
+                       [[0,0,0,0],[0,1,0,1],[0,0,0,0]],
+                       [[0,0,0,0],[0,1,0,1],[0,0,0,0]]])
     
-    ts = phase_tracking_dwba(volume, frequencies, voxel_size, angles, densities, sound_speeds)
+    ts = phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, sound_speeds)
     
     print(ts)
     
