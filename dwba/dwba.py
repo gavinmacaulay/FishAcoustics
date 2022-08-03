@@ -11,8 +11,6 @@ Created on Mon Aug  1 12:26:59 2022
     
 """
 
-import sys
-import math
 import numpy as np
 from scipy import ndimage
 
@@ -117,14 +115,13 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     if not len(sound_speeds) >= len(categories):
         raise ValueError('The sound_speeds variable must contain at least as many values as unique integers in the volume variable.')
 
-    # - that voxel_size values are positive (and identical for the moment)
-
     # an intermediate output data structure
     fbs_dwba = np.array(np.zeros((angles.shape[1], len(frequencies)), dtype=np.complex128))
 
     g = densities[1:] / densities[0]
     h = sound_speeds[1:] / sound_speeds[0] 
     
+    # Iterate over the requested object angles
     for angle_i in np.arange(angles.shape[1]):
         pitch = angles[0,angle_i]
         roll = angles[1,angle_i]
@@ -137,18 +134,21 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
         
         categories = np.unique(v) # or just take the max?
 
+        # Iterate over the requested frequencies
         for f_i, f in enumerate(frequencies):
             #print(f'Running at {f/1e3} kHz')
         
             # wavenumbers in the various media
-            k = 2*math.pi * f / sound_speeds
+            k = 2.0*np.pi * f / sound_speeds
             
             # DWBA coefficients
             # amplitudes in media 1,2,...,n
             Cb = 1.0/(g * h**2) + 1.0/g - 2.0 # gamma_kappa - gamma_rho
-            Ca = k[0]**2 * Cb / (4.0*math.pi) # summation coefficient
+            Ca = k[0]**2 * Cb / (4.0*np.pi) # summation coefficient
             
-            # Differential phase for each voxel
+            # Differential phase for each voxel. There is some opportunity to
+            # move the populating of 'masks' out of the frequency loop which 
+            # might speed things up.
             dph = np.zeros(v.shape)
             masks = []
             for i, category in enumerate(categories):
@@ -190,6 +190,7 @@ def main():
     
     
 if __name__ == '__main__':
+    import sys
     sys.exit(main())
     
     
