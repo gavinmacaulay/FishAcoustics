@@ -86,13 +86,37 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     dv = voxel_size.prod()
 
     # input parameter checks
-    # - that volume is 3D
-    # - that unique values in volume are consecutive integers starting at 0
-    # - that length of densities and sound_speeds are >= the number of unique values in volume
-    # - that frequencies are positive 
-    # - that angles (pitch) are -180 to +180
-    # - that angles (roll) are -180 to +180
-    # - that voxel_size is of length 3
+    if not len(volume.shape) == 3:
+        raise TypeError('The volume input variable must be 3-dimensional.')
+
+    if not voxel_size.shape[0] == 3:
+        raise TypeError('The voxel_size input variable must contain 3 items.')
+
+    if not np.any(voxel_size > 0):
+        raise ValueError('All voxel_size values must be positive.')
+        
+    if np.any(frequencies < 0.0):
+        raise ValueError('The frequencies input variable must contain only positive values.')
+
+    if (angles[0,:].min() < -180.0) or (angles[0,:].max() > 180.0):
+        raise ValueError('The pitch angles must be between -180.0 and +180.0')
+            
+    if (angles[1,:].min() < -180.0) or (angles[1,:].max() > 180.0):
+        raise ValueError('The roll angles must be between -180.0 and +180.0')
+
+    if volume.min() != 0:
+        raise ValueError('The volume input variable must contain 0.')
+
+    categories = np.unique(volume)        
+    if not len(categories == (volume.max() + 1)):
+        raise ValueError('The integers in volume must include all values in the series (0, 1, 2, ..., n), where n is the largest integer in volume.')
+
+    if not len(densities) >= len(categories):
+        raise ValueError('The densities variable must contain at least as many values as unique integers in the volume variable.')
+
+    if not len(sound_speeds) >= len(categories):
+        raise ValueError('The sound_speeds variable must contain at least as many values as unique integers in the volume variable.')
+
     # - that voxel_size values are positive (and identical for the moment)
 
     # an intermediate output data structure
@@ -107,7 +131,9 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
         
         print(f'Running at pitch of {pitch:.1f}° and roll of {roll}° for {frequencies.min()/1e3} to {frequencies.max()/1e3} kHz')
         
-        v = volume_rotate(volume, pitch, roll)
+        # Do the pitch and roll rotations
+        v = ndimage.rotate(volume, -pitch, axes=(0,2), order=0)
+        v = ndimage.rotate(v, -roll, axes=(0,1), order=0)
         
         categories = np.unique(v) # or just take the max?
 
@@ -144,27 +170,6 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     # Convert to TS
     return 20.0 * np.log10(np.abs(fbs_dwba))
     
-def volume_rotate(v, pitch, roll):
-    """
-    Rotates the 3D ndarray by pitch and roll degrees using
-    nearest neighbour interpolation (to preserve the categorial nature of the 
-    data).
-
-    Positive pitch is head up.
-    Positive roll is to the left. 
-
-    Returns
-    -------
-    Rotated 3D ndarray.
-
-    """    
-
-    v = ndimage.rotate(v, -pitch, axes=(0,2), order=0)
-    v = ndimage.rotate(v, -roll, axes=(0,1), order=0)
-
-    return v
-
-
 def main():
     
     frequencies = np.arange(1000,100001,500)
