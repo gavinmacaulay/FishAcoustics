@@ -58,12 +58,12 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     frequencies: iterable containing the frequencies to run the model at [Hz]
             
     voxel_size: iterable containing the size of the voxels in the volume 
-                variable [m]. This code requires that the voxels are cubes.
+                variable [m]. This code assumes that the voxels are cubes.
                 
-    densities: iterable with the same number of entries as unique integers in 
+    densities: iterable with at least the same number of entries as unique integers in 
                the volume variable.  [kg/m^3]
                
-    sound_speeds: iterable with the same number of entries as unique integers in 
+    sound_speeds: iterable with at least the same number of entries as unique integers in 
                   the volume variable.  [m/s]
     
     Returns
@@ -115,9 +115,10 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
     if not len(sound_speeds) >= len(categories):
         raise ValueError('The sound_speeds variable must contain at least as many values as unique integers in the volume variable.')
 
-    # an intermediate output data structure
+    # Initialise an intermediate output data structure
     fbs_dwba = np.array(np.zeros((angles.shape[1], len(frequencies)), dtype=np.complex128))
 
+    # density and sound speed ratios for all object materials
     g = densities[1:] / densities[0]
     h = sound_speeds[1:] / sound_speeds[0] 
     
