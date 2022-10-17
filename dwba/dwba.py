@@ -13,6 +13,9 @@ Created on Mon Aug  1 12:26:59 2022
 
 import numpy as np
 from scipy import ndimage
+import logging
+
+logger = logging.getLogger()
 
 def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, sound_speeds):
     """
@@ -127,7 +130,7 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
         pitch = angles[0,angle_i]
         roll = angles[1,angle_i]
         
-        print(f'Running at pitch of {pitch:.1f}° and roll of {roll}° for {frequencies.min()/1e3} to {frequencies.max()/1e3} kHz')
+        logger.info(f'(DWBA) Running at pitch of {pitch:.1f}° and roll of {roll}° for {frequencies.min()/1e3} to {frequencies.max()/1e3} kHz')
         
         # Do the pitch and roll rotations
         v = ndimage.rotate(volume, -pitch, axes=(0,2), order=0)
