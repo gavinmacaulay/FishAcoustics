@@ -11,7 +11,7 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 
-def read_lsss_db_export(format, filename, acocat, frequency):
+def read_lsss_db_export(lsss_format, filename, acocat, frequency):
     """
     acocat is always converted to a string
     format should be integer
@@ -31,7 +31,7 @@ def read_lsss_db_export(format, filename, acocat, frequency):
 
     """
     
-    if format == 20:
+    if lsss_format == 20:
         tree = ET.parse(filename)
         root = tree.getroot()
         
@@ -65,8 +65,9 @@ def read_lsss_db_export(format, filename, acocat, frequency):
             #print(f'Reading data at ping time of {start_time}')
             start_lat = float(n.find('lat_start').text)
             start_lon = float(n.find('lon_start').text)
-            ch = n.find('frequency')
-            if ch.attrib['freq'] == frequency:                
+            
+            ch = n.find(f"./frequency/[@freq='{frequency}']")
+            if ch: 
                 num_channels = int(ch.find('num_pel_ch').text)
                 sA_values = np.zeros((num_channels,))
                 channel_time.append(start_time)
