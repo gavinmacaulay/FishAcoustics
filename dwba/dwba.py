@@ -130,7 +130,7 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
         pitch = angles[0,angle_i]
         roll = angles[1,angle_i]
         
-        logger.info(f'(DWBA) Running at pitch of {pitch:.1f}° and roll of {roll}° for {frequencies.min()/1e3} to {frequencies.max()/1e3} kHz')
+        #logger.info(f'(DWBA) Running at pitch of {pitch:.1f}° and roll of {roll}° for {frequencies.min()/1e3} to {frequencies.max()/1e3} kHz')
         
         # Do the pitch and roll rotations
         v = ndimage.rotate(volume, -pitch, axes=(0,2), order=0)
@@ -140,7 +140,7 @@ def phase_tracking_dwba(volume, angles, frequencies, voxel_size, densities, soun
 
         # Iterate over the requested frequencies
         for f_i, f in enumerate(frequencies):
-            #print(f'Running at {f/1e3} kHz')
+            #logger.info(f'Running at {f/1e3} kHz')
         
             # wavenumbers in the various media
             k = 2.0*np.pi * f / sound_speeds
