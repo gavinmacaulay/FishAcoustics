@@ -2,7 +2,7 @@
 """
 Created on Mon Aug  1 12:26:59 2022
 
-@author: gavin
+@author: Gavin Macaulay
 """
 
 """
