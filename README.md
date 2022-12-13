@@ -1,4 +1,4 @@
-This repository contains Python code that does various things of value to fisheries acoustics:
+This repository contains Python code that provides various things of value to fisheries acoustics studies:
 
 - Plots echosounder near-field ranges ([plot_transducer_near_fields.py](acoustics/plot_transducer_near_fields.py))
 - Implements the phase-tracking distorted wave Born approximation ([dwba.py](dwba/dwba.py))
