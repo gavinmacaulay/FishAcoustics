@@ -61,7 +61,7 @@ def read_lsss_db_export(lsss_format, filename, acocat, frequency):
         for n in root.iter('distance'): # loop over each integration interval
             thickness = float(n.find('pel_ch_thickness').text)
             distance = float(n.find('integrator_dist').text) # [nmi]
-            start_time = dt.datetime.strptime(n.attrib['start_time'], '%Y-%m-%d %H:%M:%S')
+            start_time = pd.Timestamp(dt.datetime.strptime(n.attrib['start_time'], '%Y-%m-%d %H:%M:%S'), tz='UTC')
             #print(f'Reading data at ping time of {start_time}')
             start_lat = float(n.find('lat_start').text)
             start_lon = float(n.find('lon_start').text)
