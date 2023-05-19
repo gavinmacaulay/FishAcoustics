@@ -90,10 +90,12 @@ def read_lsss_db_export(lsss_format, filename, acocat, frequency):
  
     
         # combine into a DataFrame 
-        r = pd.DataFrame(zip(channel_time, channel_lat, channel_lon, channel_sA_sum, 
+        r = pd.DataFrame(zip(channel_lat, channel_lon, channel_sA_sum, 
                              channel_sA, channel_acocat, channel_dist, channel_thickness,
                              channel_min_depth, channel_max_depth), 
-                         columns=['time', 'lat', 'lon', 'sA_sum', 'sA', 'acocat', 
+                         columns=['lat', 'lon', 'sA_sum', 'sA', 'acocat', 
                                   'distance', 'thickness', 'channel_min_depth',
-                                  'channel_max_depth'])
+                                  'channel_max_depth'], index=channel_time)
+        r.index.name = 'time'
+        
     return r
