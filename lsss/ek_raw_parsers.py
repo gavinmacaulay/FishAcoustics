@@ -31,6 +31,7 @@ __all__ = [
     "SimradRawParser",
     "KoronaPICParser",
     "KoronaPIDParser",
+    "KoronaRBRParser",
 ]
 
 import logging
@@ -1761,11 +1762,11 @@ class KoronaPICParser(_SimradDatagramParser):
                 (number, red, green, blue) = struct.unpack("BBBB", c[2][:4])
                 buf_index += len(name) + len(legend) + 2 + 4
                 
-                cat = data["categories"].setdefault(cat_indx, 
-                          {"name": name, "legend": legend, "number": number, 
-                           "red": red, "green": green, "blue": blue})
+                data["categories"].setdefault(cat_indx, 
+                        {"name": name, "legend": legend, "number": number, 
+                         "red": red, "green": green, "blue": blue})
                 
-            return data
+        return data
             
             
 class KoronaPIDParser(_SimradDatagramParser):
@@ -1837,8 +1838,6 @@ class KoronaPIDParser(_SimradDatagramParser):
         data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
         data["bytes_read"] = bytes_read
 
-        print(data)
-
         if version == 0:
             data["plankton_samples"] = {}
             
@@ -1882,5 +1881,83 @@ class KoronaPIDParser(_SimradDatagramParser):
                     dd["fraction"] = fraction
                     dd["residual"] = residual
                                     
+        return data
+            
+class KoronaRBRParser(_SimradDatagramParser):
+    """
+    Korona RBR datagram contains the following keys:
+
+
+        type:               string == 'RBR0'
+        low_date:           long uint representing LSBytes of 64bit NT date
+        high_date:          long uint representing MSBytes of 64bit NT date
+        timestamp:          datetime.datetime object of NT date, assumed to be UTC
+        channel:            int
+        threshold:          float
+        border_info_count:  int
+        border_info:        [list] List of dicts representing border infos:
+
+        Border infos keys:
+        id                [int]
+        start_detph       [float]
+        end_depth         [float]
+        mean_log_Sv       [float]
+        accepted          [int]
+
+    The following methods are defined:
+
+        from_string(str):    parse a raw Korona PIC datagram
+                            (with leading/trailing datagram size stripped)
+
+    """
+
+    def __init__(self):
+        headers = {
+            0: [
+                ("type", "4s"),
+                ("low_date", "L"),
+                ("high_date", "L"),
+                ("channel", "i"),
+                ("threshold", "f"),
+                ("border_info_count", "i"),
+            ]
+        }
+
+        _SimradDatagramParser.__init__(self, "RBR", headers)
+        
+    def _unpack_contents(self, raw_string, bytes_read, version):
+        data = {}
+        header_values = struct.unpack(
+            self.header_fmt(version), raw_string[: self.header_size(version)]
+        )
+
+        for indx, field in enumerate(self.header_fields(version)):
+            data[field] = header_values[indx]
+
+            #  handle Python 3 strings
+            if (sys.version_info.major > 2) and isinstance(data[field], bytes):
+                data[field] = data[field].decode("latin_1")
+
+        data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
+        data["bytes_read"] = bytes_read
+
+        
+        border_format = "ifffi"
+        border_bytes = struct.calcsize(border_format)
+
+        if version == 0:
+            data["border_infos"] = {}
+            
+            buf_index = self.header_size(version)
+            
+            for border_index in range(1, data["border_info_count"]+1):
+                
+                c = struct.unpack(border_format, raw_string[buf_index:buf_index+border_bytes])
+                buf_index += border_bytes
+                
+                data["border_infos"].setdefault(border_index, 
+                     {"id": c[0], "start_depth": c[1], "end_depth": c[2],
+                      "mean_log_Sv": c[3], "accepted": c[4]})
+                
         return data
             

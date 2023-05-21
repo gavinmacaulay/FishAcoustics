@@ -95,6 +95,7 @@ class RawSimradFile(BufferedReader):
         "MRU": parsers.SimradMRUParser(),
         "PIC": parsers.KoronaPICParser(),
         "PID": parsers.KoronaPIDParser(),
+        "RBR": parsers.KoronaRBRParser(),
     }
 
     def __init__(
