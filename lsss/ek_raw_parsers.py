@@ -29,6 +29,8 @@ __all__ = [
     "SimradAnnotationParser",
     "SimradConfigParser",
     "SimradRawParser",
+    "KoronaPICParser",
+    "KoronaPIDParser",
 ]
 
 import logging
@@ -1690,3 +1692,195 @@ class SimradRawParser(_SimradDatagramParser):
                     datagram_contents.extend(data["angle"])
 
         return struct.pack(datagram_fmt, *datagram_contents)
+
+class KoronaPICParser(_SimradDatagramParser):
+    """
+    Korona PIC datagram contains the following keys:
+
+
+        type:               string == 'PIC0'
+        low_date:           long uint representing LSBytes of 64bit NT date
+        high_date:          long uint representing MSBytes of 64bit NT date
+        timestamp:          datetime.datetime object of NT date, assumed to be UTC
+        count:              int
+        categories          [list] List of dicts representing Plankton Categories:
+
+        Plankton Categories keys:
+        name                [str]
+        legend              [str]
+        number              [byte]
+        red                 [byte]
+        green               [byte]
+        blue                [byte]
+
+
+    The following methods are defined:
+
+        from_string(str):    parse a raw Korona PIC datagram
+                            (with leading/trailing datagram size stripped)
+
+    """
+
+    def __init__(self):
+        headers = {
+            0: [
+                ("type", "4s"),
+                ("low_date", "L"),
+                ("high_date", "L"),
+                ("count", "i"),
+            ]
+        }
+
+        _SimradDatagramParser.__init__(self, "PIC", headers)
+        
+    def _unpack_contents(self, raw_string, bytes_read, version):
+        data = {}
+        header_values = struct.unpack(
+            self.header_fmt(version), raw_string[: self.header_size(version)]
+        )
+
+        for indx, field in enumerate(self.header_fields(version)):
+            data[field] = header_values[indx]
+
+            #  handle Python 3 strings
+            if (sys.version_info.major > 2) and isinstance(data[field], bytes):
+                data[field] = data[field].decode("latin_1")
+
+        data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
+        data["bytes_read"] = bytes_read
+
+        if version == 0:
+            data["categories"] = {}
+            
+            buf_index = self.header_size(version)
+            
+            for cat_indx in range(1, data["count"]+1):
+                c = raw_string[buf_index:].split(b'\x00', 2)
+                name = c[0].decode("iso-8859-1")
+                legend = c[1].decode("iso-8859-1")
+                (number, red, green, blue) = struct.unpack("BBBB", c[2][:4])
+                buf_index += len(name) + len(legend) + 2 + 4
+                
+                cat = data["categories"].setdefault(cat_indx, 
+                          {"name": name, "legend": legend, "number": number, 
+                           "red": red, "green": green, "blue": blue})
+                
+            return data
+            
+            
+class KoronaPIDParser(_SimradDatagramParser):
+    """
+    Korona PID datagram contains the following keys:
+
+
+        type:               string == 'PID0'
+        low_date:           long uint representing LSBytes of 64bit NT date
+        high_date:          long uint representing MSBytes of 64bit NT date
+        timestamp:          datetime.datetime object of NT date, assumed to be UTC
+        count:              [int]
+        sample_distance     [float]
+        first_depth         [float]
+        number_of_samples   [int]
+        plankton_samples    [list] List of dicts representing plankton samples:
+
+        Plankton samples keys:
+        start_sample_number      [int]
+        number_of_plankton_datas [int]
+        plankton_datas           [list] List of dicts representing plankton data
+        
+        Plankton data keys:
+        plankton_number    [byte]
+        number_of_bins     [int] in length distribution
+        length_dist        [list] only present of number_of_bins > 0
+        fraction           [float]
+        residual           [float]
+        
+        Length distribution keys:
+        bin_dividers        [float*] number_of_bins + 1
+        abundance           [float*] number_of_bins
+
+    The following methods are defined:
+
+        from_string(str):    parse a raw Korona PIC datagram
+                            (with leading/trailing datagram size stripped)
+
+    """
+
+    def __init__(self):
+        headers = {
+            0: [
+                ("type", "4s"),
+                ("low_date", "L"),
+                ("high_date", "L"),
+                ("count", "i"),
+                ("sample_distance", "f"),
+                ("first_depth", "f"),
+                ("number_of_samples", "i"),
+            ]
+        }
+
+        _SimradDatagramParser.__init__(self, "PID", headers)
+        
+    def _unpack_contents(self, raw_string, bytes_read, version):
+        data = {}
+        header_values = struct.unpack(
+            self.header_fmt(version), raw_string[: self.header_size(version)]
+        )
+
+        for indx, field in enumerate(self.header_fields(version)):
+            data[field] = header_values[indx]
+
+            #  handle Python 3 strings
+            if (sys.version_info.major > 2) and isinstance(data[field], bytes):
+                data[field] = data[field].decode("latin_1")
+
+        data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
+        data["bytes_read"] = bytes_read
+
+        print(data)
+
+        if version == 0:
+            data["plankton_samples"] = {}
+            
+            i = self.header_size(version)
+            
+            for samples_index in range(1, data["number_of_samples"]+1):
+                s = struct.unpack("ii", raw_string[i:i+8])
+                i += 8
+
+                ss = data["plankton_samples"].setdefault(samples_index, {})
+                ss["start_sample_number"] = s[0]
+                ss["number_of_plankton_datas"] = s[1]
+                ss["plankton_data"] = {}
+                
+                for datas_index in range(1, ss["number_of_plankton_datas"]+1):
+                    (plankton_number,) = struct.unpack("B", raw_string[i:i+1])
+                    i += 1
+                    (number_of_bins,) = struct.unpack("i", raw_string[i:i+4])
+                    i += 4
+                    
+                    dd = ss["plankton_data"].setdefault(datas_index, {})
+                    dd["plankton_number"] = plankton_number
+                    dd["number_of_bins"] = number_of_bins
+
+                    # read in length dist if present
+                    bin_dividers = np.array([])
+                    abundances = np.array([])
+                    if number_of_bins > 0:
+                        block_size = (number_of_bins+1) * 4
+                        bin_dividers = np.frombuffer(raw_string[i:i+block_size], dtype="single")
+                        i += block_size
+                        block_size = number_of_bins * 4
+                        abundances = np.frombuffer(raw_string[i:i+block_size], dtype="single")
+                        i += block_size
+
+                    dd["bin_dividers"] = bin_dividers
+                    dd["abundances"] = abundances
+                    
+                    (fraction, residual) = struct.unpack("ff", raw_string[i:i+8])
+                    i += 8
+                    dd["fraction"] = fraction
+                    dd["residual"] = residual
+                                    
+        return data
+            
