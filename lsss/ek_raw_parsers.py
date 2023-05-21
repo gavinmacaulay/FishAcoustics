@@ -32,6 +32,7 @@ __all__ = [
     "KoronaPICParser",
     "KoronaPIDParser",
     "KoronaRBRParser",
+    "KoronaRNFParser",
 ]
 
 import logging
@@ -1959,5 +1960,113 @@ class KoronaRBRParser(_SimradDatagramParser):
                      {"id": c[0], "start_depth": c[1], "end_depth": c[2],
                       "mean_log_Sv": c[3], "accepted": c[4]})
                 
+        return data
+            
+class KoronaRNFParser(_SimradDatagramParser):
+    """
+    Korona RNF datagram contains the following keys:
+
+
+        type:               string == 'RBR0'
+        low_date:           long uint representing LSBytes of 64bit NT date
+        high_date:          long uint representing MSBytes of 64bit NT date
+        timestamp:          datetime.datetime object of NT date, assumed to be UTC
+
+    XXXXXX - mising doc here
+
+    The following methods are defined:
+
+        from_string(str):    parse a raw Korona RNF datagram
+                            (with leading/trailing datagram size stripped)
+
+    """
+
+    def __init__(self):
+        headers = {
+            0: [
+                ("type", "4s"),
+                ("low_date", "L"),
+                ("high_date", "L"),
+                ("accepted", "i"),
+                ("channel", "i"),
+                ("threshold", "f"),
+                ("bb_x", "f"),
+                ("bb_y", "f"),
+                ("bb_width", "f"),
+                ("bb_height", "f"),
+                ("area", "f"),
+                ("sample_count", "f"),
+                ("sum_log_Sv", "f"),
+                ("sum_Sv", "f"),
+                ("log_mean_Sv", "f"),
+                ("sa", "f"),
+                ("unknown", "i"), # not in Korona docs, so just a placeholder...
+                ("perimeter", "f"),
+                ("length", "f"),
+                ("max_height", "f"),
+                ("stats_mean_inside", "d"),
+                ("stats_std_dev_inside", "d"),
+                ("stats_mean_outside", "d"),
+                ("stats_std_dev_outside", "d"),
+                ("stats_overlap", "d"),
+                ("stats_crossing", "d"),
+                ("border_id_count", "i"),
+            ]
+        }
+
+        _SimradDatagramParser.__init__(self, "RNF", headers)
+        
+    def _unpack_contents(self, raw_string, bytes_read, version):
+        data = {}
+        header_values = struct.unpack(
+            self.header_fmt(version), raw_string[: self.header_size(version)]
+        )
+
+        for indx, field in enumerate(self.header_fields(version)):
+            data[field] = header_values[indx]
+
+            #  handle Python 3 strings
+            if (sys.version_info.major > 2) and isinstance(data[field], bytes):
+                data[field] = data[field].decode("latin_1")
+
+        data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
+        data["bytes_read"] = bytes_read
+
+        i = self.header_size(version)
+        
+        block_size = 4 * data["border_id_count"]
+        data["border_ids"] = np.frombuffer(raw_string[i:i+block_size], dtype="int")     
+        i += block_size
+        
+        hist_format = "ffi"
+        hist_size = struct.calcsize(hist_format)
+        h = struct.unpack(hist_format, raw_string[i:i+hist_size])
+        i += hist_size
+        data["hist_start_value"] = h[0]
+        data["hist_step"] = h[1]
+        data["hist_max_index"] = h[2]
+        
+        block_size = 4 * data["hist_max_index"]
+        data["hist_counts"] = np.frombuffer(raw_string[i:i+block_size], dtype="int")
+        i += block_size
+        
+        data["perimeter_point_count"], = struct.unpack("i", raw_string[i:i+4])
+        i += 4
+        
+        data["perimeter_points"] = {}
+        
+        ## this code isn't working right. It's not crucial data, so leave it out
+        ## for the moment.
+        #
+        # for perimeter_index in range(1, data["perimeter_point_count"]+1):
+        #     print(perimeter_index, i, len(raw_string))
+        #     (ntTime, depth) = struct.unpack("Qf", raw_string[i:i+12])
+        #     i += 12
+        #     data["perimeter_points"].setdefault(perimeter_index, 
+        #                                         {"ntTime": ntTime, "depth": depth})
+            
+            
+        # data["inner_traces_count"] = struct.unpack("i", raw_string[i:i+4])
+                        
         return data
             
