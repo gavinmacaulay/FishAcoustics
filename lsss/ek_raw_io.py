@@ -26,7 +26,7 @@ import ek_raw_parsers as parsers
 __all__ = ["RawSimradFile"]
 
 import logging
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('')
 
 
