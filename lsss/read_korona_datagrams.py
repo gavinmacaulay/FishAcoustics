@@ -56,14 +56,18 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
     # this is inefficient and takes a long time to run
     print('    Creating category dataset')
     for p in pid: # for each category datagram
-        #print(f'{ii} of {len(pid)}')
         time_i = np.argwhere(pc.time.data==p['timestamp'])[0][0]
         sample_starts = [s['start_sample_number'] for s in p['plankton_samples'].values()]
         sample_ends = np.array(sample_starts[1:]+[len(raw_depths)])
+        # store categries for the current ping in a temporary vector
+        ping_data = np.full(raw_depths.shape, 0)
         for s, s_start, s_end in zip(p['plankton_samples'].values(), sample_starts, sample_ends):
             for d in s['plankton_data'].values(): # for each data
                 if d['plankton_number'] > 0:
-                    pc[s_start:s_end, time_i] = d['plankton_number']
+                    ping_data[s_start:s_end] = d['plankton_number']
+        # and then update the xarray once per ping. MUCH faster than operating 
+        # directly on the xarray
+        pc[:, time_i] = ping_data
 
     # now convert the depth axis from samples to metres
     pc['depth'] = raw_depths * sample_int
@@ -84,17 +88,16 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
         region_mask_timestamps = b.timestamp.unique()
         region_mask_depths = np.linspace(region["bb_y"], region["bb_y"] + region["bb_height"], num_depths, endpoint=True)
         
-        region_mask = xr.DataArray(True, coords=[region_mask_depths, region_mask_timestamps], 
-                                      dims=['depth', 'time'])
+        region_mask = np.full((len(region_mask_depths), len(region_mask_timestamps)), True)
         
         # set to false all places in the mask that are inside the region    
         for index, row in b.iterrows():
-            mask = dict(time=row.timestamp, 
-                        depth=region_mask_depths[(region_mask_depths>=row.start_depth)&(region_mask_depths<=row.end_depth)])
-            region_mask.loc[mask] = False
+            depth_i = (region_mask_depths>=row.start_depth)&(region_mask_depths<=row.end_depth)
+            time_i = region_mask_timestamps == row.timestamp
+            region_mask[depth_i, time_i] = False
         
         # now extract the region_mask bounding box of the planton categories
-        rr = pc.sel(time=region_mask.time, depth=region_mask.depth, method='nearest')
+        rr = pc.sel(time=region_mask_timestamps, depth=region_mask_depths, method='nearest')
         # and select out the pc where region_mask is False
         bins = np.bincount(ma.masked_array(rr, mask=region_mask).data.flatten())
         categories = np.arange(len(bins))
@@ -109,10 +112,10 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
         rc['width'].append(region['bb_width'])
         
         # generate a polygon version of the region and tag with category
-        time_axis = np.array(region_mask.time)
+        time_axis = region_mask_timestamps
         time_axis = np.append(time_axis, time_axis[-1]+np.diff(time_axis[-2:]))
         
-        depth_axis = np.array(region_mask.depth)
+        depth_axis = region_mask_depths
         depth_axis = np.append(depth_axis, depth_axis[-1]+np.diff(depth_axis[-2:]))
         
         if (region_mask.shape[0] > 2) and (region_mask.shape[1] > 2):
@@ -132,7 +135,7 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
 
 koronaFiles = dataDir.glob('*.raw')
 # for testing, select some files
-koronaFiles=list(koronaFiles)[5:]
+#koronaFiles=list(koronaFiles)[5:]
 
 import logging
 logger = logging.getLogger('')
