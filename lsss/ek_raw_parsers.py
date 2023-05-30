@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Code obtained from echopype package: https://github.com/OSOceanAcoustics/echopype
+
 Code originally developed for pyEcholab
 (https://github.com/CI-CMG/pyEcholab)
 by Rick Towler <rick.towler@noaa.gov> at NOAA AFSC.
