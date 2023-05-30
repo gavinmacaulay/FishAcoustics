@@ -1999,8 +1999,7 @@ class KoronaRNFParser(_SimradDatagramParser):
                 ("sum_log_Sv", "f"),
                 ("sum_Sv", "f"),
                 ("log_mean_Sv", "f"),
-                ("sa", "f"),
-                ("unknown", "i"), # not in Korona docs, so just a placeholder...
+                ("sa", "d"),
                 ("perimeter", "f"),
                 ("length", "f"),
                 ("max_height", "f"),
