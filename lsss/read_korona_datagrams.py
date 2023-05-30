@@ -135,7 +135,7 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
 
 koronaFiles = dataDir.glob('*.raw')
 # for testing, select some files
-#koronaFiles=list(koronaFiles)[5:]
+koronaFiles=list(koronaFiles)[0:]
 
 import logging
 logger = logging.getLogger('')
@@ -238,7 +238,8 @@ groups = rc.index.strftime(group_fmt).unique()
 cats = rc.category.unique()
 for c in cats:
     print(f'Doing category {c}')
-    fig, axs = plt.subplots(4,5, sharey=True, sharex=True, layout='constrained')
+    fig, axs = plt.subplots(5,5, sharey=True, sharex=True, 
+                            layout='constrained', gridspec_kw={'wspace':0.00, 'hspace': 0.00})
     for ax, group in zip(axs.flat, groups):
         chunk = rc[(rc.index.strftime(group_fmt) == group) & (rc.category == c)]
         rcc = chunk
@@ -253,7 +254,13 @@ for c in cats:
     for ax in axs[-1,:]:
         ax.tick_params(axis='x', labelsize=6, rotation=45)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H'))
-        
+
+    for ax in axs[:,1:].flat:
+        ax.tick_params(axis='y', which='both', left=False, right=False)
+
+    for ax in axs[:-1,:].flat:
+        ax.tick_params(axis='x', which='both', bottom=False, top=False)
+            
     # colorbar for colour of circles
     norm = mpl.colors.Normalize(vmin=minSv, vmax=maxSv)
     cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
@@ -270,7 +277,7 @@ for c in cats:
     fig.savefig(resultsDir/f'Figure_bubbles_{c}.png', dpi=600, bbox_inches='tight', pad_inches=0.1)   
 
 #%%
-# and a category echogram of the entire dataset
+# and a category echogram of the entire dataset, split into months
 
 #colours = {v:f'C{i+1}' for i, v in enumerate(cat_names.values())}
 colours={'Hard':'C1','Gas':'C2', 'FluidS':'C3', 'FBCyl':'C4', 'Uncat':'C5', 'Other':'C6'}
