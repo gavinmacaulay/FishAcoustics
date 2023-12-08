@@ -1,0 +1,11 @@
+[project]
+name = 'seawater'
+version = '0.1'
+author = 'Gavin Macaulay'
+description = 'Calculates acoustic absorption in water'
+classifiers = ["Programming Language :: Python :: 3",]
+url = 'https://github.com/gavinmacaulay/FishAcoustics'
+
+[build-system]
+requires = ["numpy",]
+build-backend = "setuptools.build_meta"
