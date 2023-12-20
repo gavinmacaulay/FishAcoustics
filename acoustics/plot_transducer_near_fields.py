@@ -35,14 +35,15 @@ for f in freq:
     idx = np.argwhere(np.diff(np.sign(textLine - r_nf))).flatten()[0]
     npts = 1
 
+
     p1 = ax.transData.transform_point((bw[idx-npts], r_nf[idx-npts]))
     p2 = ax.transData.transform_point((bw[idx+npts], r_nf[idx+npts]))
     dy = ((p2[1] - p1[1]))
     dx = (p2[0] - p1[0])
     rotn = np.degrees(np.arctan2(dy, dx))
-    ax.annotate(label, xy=(bw[idx], r_nf[idx]), ha='center', va='bottom', 
-                rotation=rotn, fontsize=7)
-    
+    ax.text(bw[idx-npts], r_nf[idx-npts], label, fontsize=7,
+            rotation=rotn, rotation_mode='anchor',
+            transform_rotates_text=True, va='bottom')
 
 plt.minorticks_on()
 ax.grid(axis='x', which='minor', linewidth=0.5, linestyle=':')
