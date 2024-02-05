@@ -1,11 +1,37 @@
-[project]
-name = 'seawater'
-version = '0.1'
-author = 'Gavin Macaulay'
-description = 'Calculates acoustic absorption in water'
-classifiers = ["Programming Language :: Python :: 3",]
-url = 'https://github.com/gavinmacaulay/FishAcoustics'
-
 [build-system]
-requires = ["numpy",]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acoustics", "src/dwba", "src/lsss", "src/seawater"]
+
+[project]
+name = 'FishAcoustics'
+version = '0.1'
+license = {file = "COPYING.txt"}
+keywords = ["acoustic", "fisheries"]
+authors = [
+  { name="Gavin Macaulay", email="gavin@macaulay.co.nz" },
+]
+description = 'Miscellaneous code to do with fisheries acoustics'
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+	"numpy",
+	"scipy",
+	"gsw",
+	"matplotlib",
+]
+
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering',
+]
+
+[project.urls]
+Homepage = 'https://github.com/gavinmacaulay/FishAcoustics'
+Issues = 'https://github.com/gavinmacaulay/FishAcoustics/issues'
