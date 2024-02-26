@@ -53,3 +53,5 @@ ax.set_ylim(yticksAt[0], yticksAt[-1])
 ax.set_xlim(bw[0], bw[-1])
 ax.set_xlabel('Transducer 3 dB beamwidth [°]')
 ax.set_ylabel('Minimum sphere range [m]')
+
+plt.savefig('near_field_ranges.png', dpi=300)
