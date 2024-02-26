@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Creates a plot of recommended minimum sphere calibration range as a function of transduer beamwidth
+Creates a plot of recommended minimum sphere calibration range as a function of transducer beamwidth
 and acoustic frequency.
 
 An earlier version of this code (written in Matlab) was used to generate Figure 2.5 in:
@@ -21,9 +21,12 @@ import numpy as np
 from labellines import labelLines  # see https://github.com/cphyc/matplotlib-label-lines
 
 c = 1470.  # [m/s] speed of sound in water # pylint: disable=invalid-name
-freq = np.array([12, 18, 26, 38, 50, 70, 120, 200, 333]) * 1e3  # [Hz] acoustic frequency
-bw = np.linspace(2, 20, 50)  # [deg] 3 dB two-way beamwidth
+# Calculate the near-field range at these frequencies
+freq = np.array([12, 18, 26, 38, 50, 70, 120, 200, 333]) * 1e3  # [Hz]
+# The range of transducer 3 dB two-way beamwidths to use
+bw = np.linspace(2, 20, 50)  # [deg]
 
+# Force y tick locations as the automatic ones aren't ideal
 yticksAt = [1, 1.5, 2, 3, 4, 6, 8, 10, 15, 20]  # [m]
 
 fig, ax = plt.subplots(1)
