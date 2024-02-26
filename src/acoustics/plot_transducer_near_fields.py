@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Creates a plot of recommended minimum sphere calibration range as per
-transduer beamwidth and acoustic frequency.
+Creates a plot of recommended minimum sphere calibration range as a function of transduer beamwidth
+and acoustic frequency.
 
-@author: Gavin Macaulay
+An earlier version of this code (written in Matlab) was used to generate Figure 2.5 in:
+
+Demer, D.A., Berger, L., Bernasconi, M., Boswell, K.M., Chu, D., Domokos, R., Dunford, A.J.,
+   Fässler, S.M.M., Gauthier, S., Hufnagle, L.T., Jech, J.M., Bouffant, N., Lebourges-Dhaussy, A.,
+   Lurton, X., Macaulay, G.J., Perrot, Y., Ryan, T.E., Parker-Stetter, S., Stienessen, S.,
+   Weber, T.C., Williamson, N.J., 2015. Calibration of acoustic instruments (ICES Cooperative
+   Research Report 326). https://doi.org/10.17895/ices.pub.5494
+
+and implements equations 2.1b, 2.2, and the factor 3 multiplier mentioned in the caption of
+Figure 2.5.
+
 """
 
 import matplotlib.pyplot as plt
@@ -14,7 +24,7 @@ c = 1470.  # [m/s] speed of sound in water # pylint: disable=invalid-name
 freq = np.array([12, 18, 26, 38, 50, 70, 120, 200, 333]) * 1e3  # [Hz] acoustic frequency
 bw = np.linspace(2, 20, 50)  # [deg] 3 dB two-way beamwidth
 
-yticksAt = [1, 1.5, 2, 3, 4, 6, 8, 10, 15, 20]
+yticksAt = [1, 1.5, 2, 3, 4, 6, 8, 10, 15, 20]  # [m]
 
 fig, ax = plt.subplots(1)
 
