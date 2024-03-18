@@ -6,7 +6,7 @@ Created on Fri Oct 22 13:31:04 2021
 """
 import numpy as np
 
-def sw_absorption(f, S, T, D, method, pH):
+def sw_absorption(f, S, T, D, method, pH=8.1):
     """ 
     function alpha = sw_absorption(f, S, T, D, method, pH)
     
