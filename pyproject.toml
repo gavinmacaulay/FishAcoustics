@@ -7,7 +7,7 @@ packages = ["src/acoustics", "src/dwba", "src/lsss_tools", "src/seawater"]
 
 [project]
 name = 'FishAcoustics'
-version = '0.1'
+version = '0.2'
 license = {file = "COPYING.txt"}
 keywords = ["acoustic", "fisheries"]
 authors = [
