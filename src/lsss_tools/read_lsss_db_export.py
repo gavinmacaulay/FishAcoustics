@@ -25,7 +25,7 @@ def read_lsss_db_export(lsss_format, filename, acocat, frequency):
 
     Returns
     -------
-    None.
+    Pandas DataFrame containing the echo-integrated data.
 
     """
     if lsss_format == 20:
@@ -67,7 +67,7 @@ def read_lsss_db_export(lsss_format, filename, acocat, frequency):
             ch = n.find(f"./frequency/[@freq='{frequency}']")
             if ch:
                 num_channels = int(ch.find('num_pel_ch').text)
-                sA_values = np.zeros((num_channels,))
+                sA_values = np.full((num_channels,), np.nan)
                 channel_time.append(start_time)
                 channel_lat.append(start_lat)
                 channel_lon.append(start_lon)
