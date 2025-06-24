@@ -913,9 +913,9 @@ class SimradXMLParser(_SimradDatagramParser):
                                             xducer_ch.attrib["TransducerSerialNumber"]
                                             == tcvr_ch_xducer.attrib["SerialNumber"]
                                         )
-                                    match_tcvr = (
-                                        tcvr_ch_num in xducer_ch.attrib["TransducerCustomName"]
-                                    )
+                                    # match_tcvr = (
+                                    #    tcvr_ch_num in xducer_ch.attrib["TransducerCustomName"]
+                                    # )
 
                                     # if find match add the transducer mounting details
                                     if (
@@ -926,9 +926,9 @@ class SimradXMLParser(_SimradDatagramParser):
                                     ):
                                         # if more than one transducer has the same name
                                         # only check sn and transceiver unique number
-                                        match_found = match_sn or match_tcvr
+                                        match_found = match_sn  # or match_tcvr
                                     else:
-                                        match_found = match_name or match_sn or match_tcvr
+                                        match_found = match_name or match_sn  # or match_tcvr
 
                                     # add transducer mounting details
                                     if match_found:
@@ -1736,7 +1736,7 @@ class KoronaPICParser(_SimradDatagramParser):
         }
 
         _SimradDatagramParser.__init__(self, "PIC", headers)
-        
+
     def _unpack_contents(self, raw_string, bytes_read, version):
         data = {}
         header_values = struct.unpack(
@@ -1755,23 +1755,23 @@ class KoronaPICParser(_SimradDatagramParser):
 
         if version == 0:
             data["categories"] = {}
-            
+
             buf_index = self.header_size(version)
-            
+
             for cat_indx in range(1, data["count"]+1):
                 c = raw_string[buf_index:].split(b'\x00', 2)
                 name = c[0].decode("iso-8859-1")
                 legend = c[1].decode("iso-8859-1")
                 (number, red, green, blue) = struct.unpack("BBBB", c[2][:4])
                 buf_index += len(name) + len(legend) + 2 + 4
-                
-                data["categories"].setdefault(cat_indx, 
-                        {"name": name, "legend": legend, "number": number, 
+
+                data["categories"].setdefault(cat_indx,
+                        {"name": name, "legend": legend, "number": number,
                          "red": red, "green": green, "blue": blue})
-                
+
         return data
-            
-            
+
+
 class KoronaPIDParser(_SimradDatagramParser):
     """
     Korona PID datagram contains the following keys:
@@ -1791,14 +1791,14 @@ class KoronaPIDParser(_SimradDatagramParser):
         start_sample_number      [int]
         number_of_plankton_datas [int]
         plankton_datas           [list] List of dicts representing plankton data
-        
+
         Plankton data keys:
         plankton_number    [byte]
         number_of_bins     [int] in length distribution
         length_dist        [list] only present of number_of_bins > 0
         fraction           [float]
         residual           [float]
-        
+
         Length distribution keys:
         bin_dividers        [float*] number_of_bins + 1
         abundance           [float*] number_of_bins
@@ -1824,7 +1824,7 @@ class KoronaPIDParser(_SimradDatagramParser):
         }
 
         _SimradDatagramParser.__init__(self, "PID", headers)
-        
+
     def _unpack_contents(self, raw_string, bytes_read, version):
         data = {}
         header_values = struct.unpack(
@@ -1843,9 +1843,9 @@ class KoronaPIDParser(_SimradDatagramParser):
 
         if version == 0:
             data["plankton_samples"] = {}
-            
+
             i = self.header_size(version)
-            
+
             for samples_index in range(1, data["number_of_samples"]+1):
                 s = struct.unpack("ii", raw_string[i:i+8])
                 i += 8
@@ -1854,13 +1854,13 @@ class KoronaPIDParser(_SimradDatagramParser):
                 ss["start_sample_number"] = s[0]
                 ss["number_of_plankton_datas"] = s[1]
                 ss["plankton_data"] = {}
-                
+
                 for datas_index in range(1, ss["number_of_plankton_datas"]+1):
                     (plankton_number,) = struct.unpack("B", raw_string[i:i+1])
                     i += 1
                     (number_of_bins,) = struct.unpack("i", raw_string[i:i+4])
                     i += 4
-                    
+
                     dd = ss["plankton_data"].setdefault(datas_index, {})
                     dd["plankton_number"] = plankton_number
                     dd["number_of_bins"] = number_of_bins
@@ -1878,14 +1878,14 @@ class KoronaPIDParser(_SimradDatagramParser):
 
                     dd["bin_dividers"] = bin_dividers
                     dd["abundances"] = abundances
-                    
+
                     (fraction, residual) = struct.unpack("ff", raw_string[i:i+8])
                     i += 8
                     dd["fraction"] = fraction
                     dd["residual"] = residual
-                                    
+
         return data
-            
+
 class KoronaRBRParser(_SimradDatagramParser):
     """
     Korona RBR datagram contains the following keys:
@@ -1927,7 +1927,7 @@ class KoronaRBRParser(_SimradDatagramParser):
         }
 
         _SimradDatagramParser.__init__(self, "RBR", headers)
-        
+
     def _unpack_contents(self, raw_string, bytes_read, version):
         data = {}
         header_values = struct.unpack(
@@ -1944,26 +1944,26 @@ class KoronaRBRParser(_SimradDatagramParser):
         data["timestamp"] = nt_to_unix((data["low_date"], data["high_date"]))
         data["bytes_read"] = bytes_read
 
-        
+
         border_format = "ifffi"
         border_bytes = struct.calcsize(border_format)
 
         if version == 0:
             data["border_infos"] = {}
-            
+
             buf_index = self.header_size(version)
-            
+
             for border_index in range(1, data["border_info_count"]+1):
-                
+
                 c = struct.unpack(border_format, raw_string[buf_index:buf_index+border_bytes])
                 buf_index += border_bytes
-                
-                data["border_infos"].setdefault(border_index, 
+
+                data["border_infos"].setdefault(border_index,
                      {"id": c[0], "start_depth": c[1], "end_depth": c[2],
                       "mean_log_Sv": c[3], "accepted": c[4]})
-                
+
         return data
-            
+
 class KoronaRNFParser(_SimradDatagramParser):
     """
     Korona RNF datagram contains the following keys:
@@ -2016,7 +2016,7 @@ class KoronaRNFParser(_SimradDatagramParser):
         }
 
         _SimradDatagramParser.__init__(self, "RNF", headers)
-        
+
     def _unpack_contents(self, raw_string, bytes_read, version):
         data = {}
         header_values = struct.unpack(
@@ -2034,11 +2034,11 @@ class KoronaRNFParser(_SimradDatagramParser):
         data["bytes_read"] = bytes_read
 
         i = self.header_size(version)
-        
+
         block_size = 4 * data["border_id_count"]
-        data["border_ids"] = np.frombuffer(raw_string[i:i+block_size], dtype="int")     
+        data["border_ids"] = np.frombuffer(raw_string[i:i+block_size], dtype="int")
         i += block_size
-        
+
         hist_format = "ffi"
         hist_size = struct.calcsize(hist_format)
         h = struct.unpack(hist_format, raw_string[i:i+hist_size])
@@ -2046,16 +2046,16 @@ class KoronaRNFParser(_SimradDatagramParser):
         data["hist_start_value"] = h[0]
         data["hist_step"] = h[1]
         data["hist_max_index"] = h[2]
-        
+
         block_size = 4 * data["hist_max_index"]
         data["hist_counts"] = np.frombuffer(raw_string[i:i+block_size], dtype="int")
         i += block_size
-        
+
         data["perimeter_point_count"], = struct.unpack("i", raw_string[i:i+4])
         i += 4
-        
+
         data["perimeter_points"] = {}
-        
+
         ## this code isn't working right. It's not crucial data, so leave it out
         ## for the moment.
         #
@@ -2063,11 +2063,10 @@ class KoronaRNFParser(_SimradDatagramParser):
         #     print(perimeter_index, i, len(raw_string))
         #     (ntTime, depth) = struct.unpack("Qf", raw_string[i:i+12])
         #     i += 12
-        #     data["perimeter_points"].setdefault(perimeter_index, 
+        #     data["perimeter_points"].setdefault(perimeter_index,
         #                                         {"ntTime": ntTime, "depth": depth})
-            
-            
+
+
         # data["inner_traces_count"] = struct.unpack("i", raw_string[i:i+4])
-                        
+
         return data
-            
