@@ -1,28 +1,20 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 30 15:35:54 2023
+"""Read korona datagrams from .raw files."""
 
-@author: gavin
-"""
-
-import os
 import numpy as np
 import pandas as pd
-#import sys
 import xarray as xr
 import numpy.ma as ma
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
 
 from rasterio import features
 import rasterio
+from lsss_tools.ek_raw_io import RawSimradFile, SimradEOF
 
-#sys.path.append(r'C:\Users\gavin\Data - not synced\Code\python\lsss')
+__all__ = ["korona_read_raw", "filter_cat_by_regions", "get_plankton"]
 
-from ek_raw_io import RawSimradFile, SimradEOF
 
 def korona_read_raw(f):
-    # read in Korona .raw file (Simrad .raw files with extra datagrams)
-
+    """Read in Korona .raw file (Simrad .raw files with extra datagrams)."""
     korona_raw = {}
 
     with RawSimradFile(str(f), "r", storage_options={}) as fid:
@@ -34,7 +26,8 @@ def korona_read_raw(f):
             except SimradEOF:
                 break
 
-            datagram["timestamp"] = np.datetime64(datagram["timestamp"].replace(tzinfo=None), "[ns]")
+            datagram["timestamp"] = np.datetime64(datagram["timestamp"].
+                                                  replace(tzinfo=None), "[ns]")
 
             if datagram['type'] not in korona_raw:
                 korona_raw[datagram['type']] = [datagram]
@@ -45,21 +38,23 @@ def korona_read_raw(f):
 
     return korona_raw
 
-# Take the korona datagrams and filter the plankton categories by korona regions
+
 def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
+    """Take the korona datagrams and filter the plankton categories by korona regions."""
     # flatten the rbr datagrams into a DataFrame
     region_borders = []
     for r in rbr:
         for b in r['border_infos'].values():
             region_borders.append((r['timestamp'], b['id'], b['start_depth'], b['end_depth']))
 
-    region_borders = pd.DataFrame(region_borders, columns=['timestamp', 'id', 'start_depth', 'end_depth'])
+    region_borders = pd.DataFrame(region_borders,
+                                  columns=['timestamp', 'id', 'start_depth', 'end_depth'])
 
     # make a 2d xarray of the plankton categories. This is for the entire file.
     raw_timestamps = [r['timestamp'] for r in raw]
     raw_timestamps = np.unique(raw_timestamps)
     raw_depths = np.arange(raw[0]['count'])
-    sample_int = raw[0]['sample_interval'] * raw[0]['sound_velocity']/2 # [m]
+    sample_int = raw[0]['sample_interval'] * raw[0]['sound_velocity']/2  # [m]
 
     # 2D array to store plankton categories - covers entire raw file at sample resolution
     pc = xr.DataArray(0, coords=[raw_depths, raw_timestamps], dims=['depth', 'time'])
@@ -67,14 +62,14 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
     # and now populate plankton_cats with the actual categories
     # this is inefficient and takes a long time to run
     print('    Creating category dataset')
-    for p in pid: # for each category datagram
-        time_i = np.argwhere(pc.time.data==p['timestamp'])[0][0]
+    for p in pid:  # for each category datagram
+        time_i = np.argwhere(pc.time.data == p['timestamp'])[0][0]
         sample_starts = [s['start_sample_number'] for s in p['plankton_samples'].values()]
         sample_ends = np.array(sample_starts[1:]+[len(raw_depths)])
         # store categries for the current ping in a temporary vector
         ping_data = np.full(raw_depths.shape, 0)
         for s, s_start, s_end in zip(p['plankton_samples'].values(), sample_starts, sample_ends):
-            for d in s['plankton_data'].values(): # for each data
+            for d in s['plankton_data'].values():  # for each data
                 if d['plankton_number'] > 0:
                     ping_data[s_start:s_end] = d['plankton_number']
         # and then update the xarray once per ping. MUCH faster than operating
@@ -88,23 +83,25 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
     rc = {'category': [], 'timestamp': [], 'mid_depth': [], 'area': [], 'height': [],
           'mean_Sv': [], 'width': []}
 
-    region_polygon = {v:[] for v in cat_names.values()}
+    region_polygon = {v: [] for v in cat_names.values()}
 
     print(f'    Filtering by regions ({len(rnf)})')
     for region in rnf:
-        ids = region['border_ids']
+        # ids = region['border_ids']
         b = region_borders.query('id in @ids')
 
         # convert into a region mask (coordinates of timestamp and depth)
         num_depths = int(round(region['bb_height']/sample_int))
         region_mask_timestamps = b.timestamp.unique()
-        region_mask_depths = np.linspace(region["bb_y"], region["bb_y"] + region["bb_height"], num_depths, endpoint=True)
+        region_mask_depths = np.linspace(region["bb_y"], region["bb_y"] + region["bb_height"],
+                                         num_depths, endpoint=True)
 
         region_mask = np.full((len(region_mask_depths), len(region_mask_timestamps)), True)
 
         # set to false all places in the mask that are inside the region
         for index, row in b.iterrows():
-            depth_i = (region_mask_depths>=row.start_depth)&(region_mask_depths<=row.end_depth)
+            depth_i = (region_mask_depths >= row.start_depth)\
+                & (region_mask_depths <= row.end_depth)
             time_i = region_mask_timestamps == row.timestamp
             region_mask[depth_i, time_i] = False
 
@@ -131,10 +128,12 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
         depth_axis = np.append(depth_axis, depth_axis[-1]+np.diff(depth_axis[-2:]))
 
         if (region_mask.shape[0] > 2) and (region_mask.shape[1] > 2):
-            for shape, value in features.shapes(region_mask.astype(np.int16), mask=(region_mask<1), transform=rasterio.Affine(1.0, 0, 0, 0, 1.0, 0)):
+            for shape, value in features.shapes(region_mask.astype(np.int16),
+                                                mask=(region_mask < 1),
+                                                transform=rasterio.Affine(1.0, 0, 0, 0, 1.0, 0)):
                 outer = np.array(shape['coordinates'][0])
-                outer[:,0] = time_axis[outer[:,0].astype('int')]
-                outer[:,1] = depth_axis[outer[:,1].astype('int')]
+                outer[:, 0] = time_axis[outer[:, 0].astype('int')]
+                outer[:, 1] = depth_axis[outer[:, 1].astype('int')]
                 region_polygon[rc['category'][-1]].append(outer)
 
     region_classification = pd.DataFrame(data=rc)
@@ -143,7 +142,7 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
     return region_classification, region_polygon
 
 
-def get_plankton(pid, raw, cat_names):
+def get_plankton(pid, raw):
     """Extract plankton data from the datagrams.
 
     Take the korona datagrams and pull out the plankton categories. This is similar to
@@ -159,30 +158,44 @@ def get_plankton(pid, raw, cat_names):
     # 2D array to store plankton categories - covers entire raw file at sample resolution
     pc = xr.DataArray(0, coords=[raw_depths, raw_timestamps], dims=['depth', 'time'])
 
+    # place to store the lf data
+    lf = {'timestamp': [], 'category': [], 'start_depth': [], 'stop_depth': [], 'bins': [],
+          'abundances': [], 'fraction': []}
+
     # and now populate plankton_cats with the actual categories
     # this is inefficient and takes a long time to run
     print('    Creating category dataset')
     for p in pid:  # for each category datagram
         time_i = np.argwhere(pc.time.data == p['timestamp'])[0][0]
+        sample_dist = p['sample_distance']
         sample_starts = [s['start_sample_number'] for s in p['plankton_samples'].values()]
-        sample_ends = np.array(sample_starts[1:]+[len(raw_depths)])
+        sample_ends = np.array(sample_starts[1:]+[p['count']])
         # store categories for the current ping in a temporary vector
         ping_data = np.full(raw_depths.shape, 0)
         for s, s_start, s_end in zip(p['plankton_samples'].values(), sample_starts, sample_ends):
-            for d in s['plankton_data'].values():  # for each data
-                if d['plankton_number'] > 0:
+            for d in s['plankton_data'].values():  # for each data - is this every more than 1?
+                if d['plankton_number'] > 0:  # since 0 is the fill when creating ping_data
                     ping_data[s_start:s_end] = d['plankton_number']
+                    if d['number_of_bins'] > 0:
+                        lf['timestamp'].append(p['timestamp'])
+                        lf['category'].append(d['plankton_number'])
+                        lf['start_depth'].append(s_start*sample_dist)
+                        lf['stop_depth'].append(s_end*sample_dist)
+                        lf['bins'].append(d['bin_dividers'])
+                        lf['abundances'].append(d['abundances'])
+                        lf['fraction'].append(d['fraction'])
         # and then update the xarray once per ping. MUCH faster than operating
         # directly on the xarray
         pc[:, time_i] = ping_data
+
+    # create dataframe with category lf data
+    lf = pd.DataFrame(data=lf)
 
     # now convert the depth axis from samples to metres
     pc['depth'] = raw_depths * sample_int
 
     # summarise into coarser resolution data.
-
     gp = pc.groupby_bins('time', 100)
-
     max_cat_id = max(np.unique(pc))
 
     data = []
@@ -195,4 +208,4 @@ def get_plankton(pid, raw, cat_names):
     col_names.append('timestamp')
     pc_sum = pd.DataFrame(data, columns=col_names)
 
-    return pc_sum
+    return pc_sum, lf

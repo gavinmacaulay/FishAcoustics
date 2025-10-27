@@ -17,10 +17,9 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 
 import numpy as np
+import logging
 
-import sys
-
-from ek_date_conversion import nt_to_unix
+from lsss_tools.ek_date_conversion import nt_to_unix
 
 TCVR_CH_NUM_MATCHER = re.compile(r"\d{6}-\w{1,2}|\w{12}-\w{1,2}")
 
@@ -37,7 +36,6 @@ __all__ = [
     "KoronaRNFParser",
 ]
 
-import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('')
 

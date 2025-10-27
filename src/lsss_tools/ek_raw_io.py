@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
+"""Read .raw files.
+
 Code obtained from echopype package: https://github.com/OSOceanAcoustics/echopype
 
 Code originally developed for pyEcholab
@@ -10,18 +10,15 @@ Contains low-level functions called by ./ek_raw_parsers.py
 """
 
 import sys
-
 import struct
 from io import SEEK_CUR, SEEK_END, SEEK_SET, BufferedReader, FileIO
-
 import fsspec
 from fsspec.implementations.local import LocalFileSystem
-
-import ek_raw_parsers as parsers
+import logging
+import lsss_tools.ek_raw_parsers as parsers
 
 __all__ = ["RawSimradFile"]
 
-import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger('')
 
