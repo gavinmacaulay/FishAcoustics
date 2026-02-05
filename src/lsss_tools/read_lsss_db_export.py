@@ -85,7 +85,7 @@ def read_lsss_db_export(lsss_format, filename, acocat, frequency):
                                 channel_id = int(child.attrib['ch'])
                                 sA_values[channel_id-1] = float(child.text)
                 channel_sA.append(sA_values)
-                channel_sA_sum.append(sA_values.sum())
+                channel_sA_sum.append(np.nansum(sA_values))
 
         # combine into a DataFrame
         r = pd.DataFrame(zip(channel_lat, channel_lon, channel_sA_sum,
