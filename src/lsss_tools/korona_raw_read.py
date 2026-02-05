@@ -142,11 +142,13 @@ def filter_cat_by_regions(rbr, rnf, pid, raw, cat_names):
     return region_classification, region_polygon
 
 
-def get_plankton(pid, raw):
+def get_plankton(pid, raw, max_depth=1e6):
     """Extract plankton data from the datagrams.
 
     Take the korona datagrams and pull out the plankton categories. This is similar to
     filter_cat_by_regions, but does filter by regions.
+    
+    If max_depth is non None, all data that goes below that depth are discarded.
 
     """
     # make a 2d xarray of the plankton categories. This is for the entire file.
@@ -170,11 +172,14 @@ def get_plankton(pid, raw):
         sample_dist = p['sample_distance']
         sample_starts = [s['start_sample_number'] for s in p['plankton_samples'].values()]
         sample_ends = np.array(sample_starts[1:]+[p['count']])
+        
         # store categories for the current ping in a temporary vector
         ping_data = np.full(raw_depths.shape, 0)
         for s, s_start, s_end in zip(p['plankton_samples'].values(), sample_starts, sample_ends):
-            for d in s['plankton_data'].values():  # for each data - is this every more than 1?
-                if d['plankton_number'] > 0:  # since 0 is the fill when creating ping_data
+            for d in s['plankton_data'].values():  # for each data - is this ever more than 1?
+                # since 0 is the fill when creating ping_data
+                if d['plankton_number'] > 0 and \
+                    s_end*sample_dist < max_depth:  # filter on max_depth
                     ping_data[s_start:s_end] = d['plankton_number']
                     if d['number_of_bins'] > 0:
                         lf['timestamp'].append(p['timestamp'])
