@@ -5,6 +5,7 @@ This repository contains Python code that provides various things of value to fi
 - Utility functions to work with some Echoview files
 - Utility functions work with some LSSS files
 - Calculates acoustic absorption in seawater using various published formulae ([sw_absorption.py](src/seawater/sw_absorption.py))
+- Converts WASSP multibeam data files into EK60-style files to make the data easier to use in conventional analysis software
 
 Pull requests, comments, and bug reports are welcome.
 
