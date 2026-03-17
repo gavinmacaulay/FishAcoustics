@@ -17,12 +17,12 @@ import struct
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-projectDir = Path(r'D:\Working\Projects\Active\2022 WindFarms')
-dataDir = projectDir/'data'/'wassp_files'
+project_dir = Path(r'D:\Working\Projects\Active\2022 WindFarms')
+dataDir = project_dir/'data'/'wassp_files'
 
 # the ek60 .raw files can either go into the same directory as the wassp files 
 # if resultsDir is None, or into a common directory, specified here:
-resultsDir = projectDir/'data'/'ek60_files'
+results_dir = project_dir/'data'/'ek60_files'
 
 files = sorted(dataDir.glob('**/*.wmbf'))
 
@@ -417,8 +417,8 @@ for file in files:
     counter_VTG = 0
     every = 20 # only output every every'th NMEA message
     
-    if resultsDir:
-        rawfile = resultsDir.joinpath(file.name).with_suffix('.raw') # all into one directory
+    if results_dir:
+        rawfile = results_dir/(file.name).with_suffix('.raw') # all into one directory
     else:
         rawfile = file.with_suffix('.raw') # same dir as wassp file
     
