@@ -1,8 +1,9 @@
 """Convert WASSP files into EK60-formatted files.
-# Extracts the echosounder data and writes out as Simrad EK60 data files.
-# If desired, multiple echosounder beams get saved as multiple
-# channels in the EK60 files. Plenty of hard-coded parameters here to make things
-# work enough for the purpose.
+
+Extracts the echosounder data and writes out as Simrad EK60 data files.
+If desired, multiple echosounder beams get saved as multiple
+channels in the EK60 files. Plenty of hard-coded parameters here to make things
+work enough for the purpose.
 """
 # /// 
 # dependencies = [
@@ -17,31 +18,36 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 projectDir = Path(r'D:\Working\Projects\Active\2022 WindFarms')
+dataDir = projectDir/'data'/'wassp_files'
 
-dataDir = projectDir.joinpath('data').joinpath('2023_wassp_files')
-
-# the .raw files can either go into the same directory as the wassp files if resultsDir is None, or into a common directory
-resultsDir = projectDir.joinpath('data').joinpath('2023_ek60_files')
+# the ek60 .raw files can either go into the same directory as the wassp files 
+# if resultsDir is None, or into a common directory, specified here:
+resultsDir = projectDir/'data'/'ek60_files'
 
 files = sorted(dataDir.glob('**/*.wmbf'))
+
 default_gain = 13 # [dB]
 default_pulse_duration = 0.001 # [s]
 default_frequency = 160e3 # [Hz]
 
-#%%
-epoch = datetime(1601,1,1)
+epoch = datetime(1601, 1, 1)
+
+####################################################################################
+# Define various classes and functions
 def datetimeToEK60Time(wasspTime):
-    # convert Python datetime to 100 nanoseconds since January 1, 1601
-    # as a 64 bit unsigned integer and express in Windows 64-bit time 
-    ek60Time = int((wasspTime - epoch).total_seconds()*1e7)
+    """Convert Python datetime to EK60 time.
     
-    return ek60Time
+    EK60 time is the same as Windows NT time, so 100 nanoseconds since January 1, 1601
+    as a 64 bit unsigned integer.
+    """
+    return int((wasspTime - epoch).total_seconds()*1e7)
 
 def datetimeFromWasspTime(ping_date, timeofday):
-    # generate a Python datetime from the given values. Timeofday
-    # is in nanoseconds since midnight
-    timestamp = ping_date + timedelta(microseconds=timeofday*1e-3)
-    return timestamp
+    """Generate a Python datetime from the given values.
+    
+    Timeofday is in nanoseconds since midnight
+    """
+    return ping_date + timedelta(microseconds=timeofday*1e-3)
 
 class EK60datagram(object):
     
@@ -104,7 +110,7 @@ class EK60raw(EK60datagram):
         self.length = self.headerlength + 72 + 2*len(self.power)
     
     def write(self, fid):
-        a=fid.tell()
+        # a=fid.tell()
         self.write_header(fid)
         fid.write(struct.pack('<hhffffffffffffhhffll', self.channel, self.mode, self.transducerdepth,
                               self.frequency, self.transmitpower, self.pulselength,
@@ -114,7 +120,7 @@ class EK60raw(EK60datagram):
                               self.rxroll, self.rxpitch, self.offset, self.count))
         self.power.tofile(fid)
         self.write_trailer(fid)
-        #print(f'{fid.tell()-a-self.lengthlength}, cf {self.length}')
+        # print(f'{fid.tell()-a-self.lengthlength}, cf {self.length}')
         
 @dataclass
 class EK60configtransducer(object):
@@ -180,7 +186,7 @@ class EK60configheader(object):
         fid.write(self.spare.encode())
         fid.write(struct.pack('l', self.transducercount))
         bytesWritten = fid.tell() - bytesWritten
-        #print(f'configheader: {bytesWritten}, cf {self.length}')
+        # print(f'configheader: {bytesWritten}, cf {self.length}')
 
     
 class EK60configuration(EK60datagram):
@@ -211,10 +217,10 @@ class EK60configuration(EK60datagram):
         bytesWritten = fid.tell() - bytesWritten - self.lengthlength
         #print(f'configuration: {bytesWritten}, cf {self.length}')
 
+###############################################################################
+# Do the conversions
 
-        
-#%%
-prev_file_ping_time = datetime(1601,1,1)
+prev_file_ping_time = epoch
 
 for file in files:
     print(f'Processing {file.name}')
@@ -224,11 +230,11 @@ for file in files:
     echogram = []
     plot_done = False
 
-    ek60_config = EK60configuration(datetime(1601,1,1))
+    ek60_config = EK60configuration(epoch)
     ek60_datagrams = [ek60_config]
     ii = 0
     haveValidDate = False
-    ping_date = datetime(1601, 1, 1)
+    ping_date = epoch
     prev_timeofday = -1
     
     sonar_freq = []
@@ -303,7 +309,7 @@ for file in files:
                     ping_date = datetime(year, month, day)
                     ek60_config.timestamp = datetimeFromWasspTime(ping_date, (hour*60*60 + minute*60)*1e9 + millisecond*1e6)
                     haveValidDate = True
-                #print(f'SENUPDAT {ek60_config.timestamp:%Y-%m-%d %H:%M:%S.%f}')
+                # print(f'SENUPDAT {ek60_config.timestamp:%Y-%m-%d %H:%M:%S.%f}')
                                 
             if packet_type == 'FISHDATA':
                 if haveValidDate:
@@ -313,13 +319,13 @@ for file in files:
                      alpha, spreading, N, M, sample_type, _, _, _, _) = struct.unpack('<QQIddfffffIIIIIII', packet[:i])
     
                     if timeofday < prev_timeofday:
-                        print('went past midnight')
+                        # print('went past midnight')
                         ping_date += timedelta(days=1)
 
                     prev_timeofday = timeofday
     
                     timestamp = datetimeFromWasspTime(ping_date, timeofday)
-                    #print(f'FISHDATA {timestamp:%Y-%m-%d %H:%M:%S.%f}')
+                    # print(f'FISHDATA {timestamp:%Y-%m-%d %H:%M:%S.%f}')
                     if timestamp > prev_file_ping_time:
                         alpha *= 1e-3 # convert from dB/km to dB/m
                         
@@ -375,7 +381,7 @@ for file in files:
                     sens_data = np.frombuffer(packet[i:], dtype='uint8', count=N)
                     if sens_data[0] == ord('$'):
                         ek60_datagrams.append(EK60nmea(timestamp, sens_data.tobytes().decode()))
-                    #print(f'RAW_SENS {timestamp:%Y-%m-%d %H:%M:%S.%f}')
+                    # print(f'RAW_SENS {timestamp:%Y-%m-%d %H:%M:%S.%f}')
                 
     # make an echogram
         
@@ -399,7 +405,7 @@ for file in files:
         #     for i in dg.configtransducer:
         #         i.frequency = mean_freq
         if dg.type == 'RAW0':
-            #dg.frequency = mean_freq 
+            # dg.frequency = mean_freq 
             dg.bandwidth = mean_bandwidth
             prev_file_ping_time = dg.timestamp
     
@@ -429,7 +435,7 @@ for file in files:
                     counter_GGA += 1
                     if not (counter_GGA % every):
                         dg.write(f)
-                        #print(f'{dg.timestamp:%Y-%m-%d %H:%M:%S.%f} {dg.nmea}')
+                        # print(f'{dg.timestamp:%Y-%m-%d %H:%M:%S.%f} {dg.nmea}')
                 elif dg.nmea[3:6] == 'HDT':
                     counter_HDT += 1
                     if not (counter_HDT % every):
@@ -445,13 +451,10 @@ for file in files:
                 
     print(f'Wrote {len(ek60_datagrams)} EK60 datagrams')
     
-    try:
-        file.with_suffix('.idx').unlink() # so that LSSS will make a new one
-    except:
-        pass
+    # so that LSSS will make a new one
+    file.with_suffix('.idx').unlink(missing_ok=True)
     
     print(f'First timestamp in file      {ek60_datagrams[0].timestamp:%Y-%m-%d %H:%M:%S.%f}')
     print(f'First ping timestamp in file {first_ping:%Y-%m-%d %H:%M:%S.%f}')
     print(f'Last ping timestamp in file  {last_ping:%Y-%m-%d %H:%M:%S.%f}')
     print(f'Last timestamp in file       {ek60_datagrams[-1].timestamp:%Y-%m-%d %H:%M:%S.%f}')
-    
