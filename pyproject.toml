@@ -21,8 +21,9 @@ dependencies = [
 	"scipy",
 	"gsw",
 	"matplotlib",
-  "rasterio",
-  "fsspec"
+	"rasterio",
+	"fsspec",
+	"spyder-kernels>=3.0.5",
 ]
 
 classifiers = [
