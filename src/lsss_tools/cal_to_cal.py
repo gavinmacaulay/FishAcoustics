@@ -22,6 +22,6 @@ for cal_file in cal_files:
         ff.write('<broadband>\n')
         ff.write('  <g>\n')
         for f, g in zip(freq, gain):
-            ff.write(f'    <case hz="{int(f)}" g="{g:.2f}"\n')
+            ff.write(f'    <case hz="{int(f)}" g="{g:.2f}"/>\n')
         ff.write('  </g>\n')
         ff.write('</broadband>\n')
