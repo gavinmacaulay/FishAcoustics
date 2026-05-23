@@ -748,6 +748,10 @@ dependencies = [
     { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "spyder-kernels", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "spyder-kernels", version = "3.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
@@ -760,8 +764,10 @@ requires-dist = [
     { name = "numpy" },
     { name = "rasterio" },
     { name = "scipy" },
-    { name = "spyder-kernels", specifier = ">=3.0.5" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "spyder-kernels", specifier = ">=3.0.5" }]
 
 [[package]]
 name = "fonttools"

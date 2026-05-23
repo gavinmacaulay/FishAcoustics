@@ -23,7 +23,6 @@ dependencies = [
 	"matplotlib",
 	"rasterio",
 	"fsspec",
-	"spyder-kernels>=3.0.5",
 ]
 
 classifiers = [
@@ -38,3 +37,8 @@ classifiers = [
 [project.urls]
 Homepage = 'https://github.com/gavinmacaulay/FishAcoustics'
 Issues = 'https://github.com/gavinmacaulay/FishAcoustics/issues'
+
+[dependency-groups]
+dev = [
+    "spyder-kernels>=3.0.5",
+]
